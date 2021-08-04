@@ -44,7 +44,7 @@ int main()
   vector<VectorXd> ground_truth;
 	vector<VectorXd> noisy_measurements;
 	std::default_random_engine generator;
-	std::normal_distribution<double> distribution(0.0,0.5);
+	std::normal_distribution<double> distribution(0.0,sigma_sensor);
 
 	ifstream infile;
 	infile.open("../data/cam_data1.txt");

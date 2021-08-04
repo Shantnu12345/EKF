@@ -15,7 +15,7 @@ FusionEKF::FusionEKF() {
 
   //measurement covariance matrix - laser
   ekf_.R_ = MatrixXd(1, 1);
-  ekf_.R_ << 0.25; //Sigma-0.15
+  ekf_.R_ << sigma_sensor*sigma_sensor;
 
   ekf_.H_ = MatrixXd(1, 2);
   ekf_.H_ << 1,0;
@@ -50,24 +50,15 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     return;
   }
 
-  /*****************************************************************************
-   *  Prediction
-   ****************************************************************************/
-
-  /**
-     * Update the state transition matrix F according to the new elapsed time.
-      - Time is measured in seconds.
-     * Update the process noise covariance matrix.
-     * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
-   */
-//  cout<<"second measuremnet"<<endl;
-	float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000.0f;	//dt - expressed in seconds
+  //  cout<<"second measuremnet"<<endl;
+	double dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000.0f;	//dt - expressed in seconds
 	previous_timestamp_ = measurement_pack.timestamp_;
-	double sigma_a = 3, variance_a=sigma_a*sigma_a;
+	
 
-	float dt_2 = dt * dt;
-	float dt_3 = dt_2 * dt;
-	float dt_4 = dt_3 * dt;
+	double dt_2 = dt * dt;
+	double dt_3 = dt_2 * dt;
+	double dt_4 = dt_3 * dt;
+  double variance_a=sigma_acceleration*sigma_acceleration;
   cout<<"dt:"<<dt<<endl;
 	//Modify the F matrix so that the time is integrated
 	ekf_.F_(0, 1) = dt;
