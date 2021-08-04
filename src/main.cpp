@@ -12,7 +12,8 @@ using namespace std;
 void plotData(const vector<VectorXd> &measurements,
 							const vector<VectorXd> &estimations,
 							const vector<VectorXd> &ground_truth,
-							float rmse)
+							float rmse, 
+							int test)
 
 {
 	int n=measurements.size();
@@ -24,25 +25,40 @@ void plotData(const vector<VectorXd> &measurements,
 	for(VectorXd vec:estimations)  est.push_back(vec(0));
 	for(VectorXd vec:ground_truth) gt.push_back(vec(0));
 
-	plt::named_plot("cam_data1_noisy", xAxis, meas);
+	string m = test==1 ? "cam_data1_noisy" : "cam_data2";
+	string g = test==1 ? "cam_data1 (GroundTruth)" : "rad_data2 (GroundTruth)";
+	plt::named_plot(m, xAxis, meas);
 	plt::named_plot("Estimations", xAxis, est);
-	plt::named_plot("cam_data1 (GroundTruth)", xAxis, gt);
-	string s = "RMSE:" + to_string(rmse);
+	plt::named_plot(g, xAxis, gt);
+	string s = "Testcase:" + to_string(test) + " RMSE:" + to_string(rmse);
 	plt::title(s);
   
 	plt::legend();
 	//plt::axis("equal");
 	plt::show();
 }
+double computeLastRadarMeasurement(vector<MeasurementPackage> const& radardata, long long timestamp)
+{
+	double lastmeas=radardata[0].raw_measurements_(0);
+	for(auto const& measPack : radardata)
+	{
+		if(measPack.timestamp_ > timestamp) 
+			break;
+
+		lastmeas=measPack.raw_measurements_(0);
+	}
+
+	return lastmeas;
+}
+
 
 int main()
 {
+	Tools tools;
 
-  // Create a Kalman Filter instance
+	{
+	cout<<"=============================================TEST CASE 1==============================================================="<<endl;
   FusionEKF fusionEKF;
-
-  // used to compute the RMSE later
-  Tools tools;
   vector<VectorXd> estimations;
   vector<VectorXd> ground_truth;
 	vector<VectorXd> noisy_measurements;
@@ -87,10 +103,75 @@ int main()
 	} 
 	
 	VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);  	 
-	cout<<"RMSE:"<<RMSE<<endl;
+	cout<<"Test case 1: RMSE:"<<RMSE<<endl;
 	
-	plotData(noisy_measurements,estimations, ground_truth, RMSE(0));
+	plotData(noisy_measurements,estimations, ground_truth, RMSE(0), 1);
+	}
 	
+	{
+	cout<<"=============================================TEST CASE 2==============================================================="<<endl;
+	FusionEKF fusionEKF2;
+  vector<VectorXd> estimations2;
+  vector<VectorXd> ground_truth2;
+	vector<MeasurementPackage> radardata;
+	vector<VectorXd> cameraData2;
+	string temp;
+	
+	ifstream gtfile;
+	gtfile.open("../data/rad_data2.txt");
+	if (!gtfile.is_open())
+	{
+		throw runtime_error(" GT File couldn't be opened");
+	}
+
+	while(getline(gtfile, temp))
+	{
+		MeasurementPackage measurement;
+		int pos = temp.find(",");
+		measurement.timestamp_ = stol(temp.substr(0, pos));
+		double meas = stod(temp.substr(pos+1));
+		measurement.raw_measurements_ = VectorXd(MEASUREMENT_SIZE);
+		measurement.raw_measurements_ << meas;
+		radardata.push_back(measurement);
+	}
+
+	ifstream infile2;
+	infile2.open("../data/cam_data2.txt");
+	if (!infile2.is_open())
+	{
+		throw runtime_error("File couldn't be opened");
+	}
+
+	while(getline(infile2, temp))
+	{
+		MeasurementPackage measurement;
+		int pos = temp.find(",");
+
+		measurement.timestamp_ = stol(temp.substr(0, pos));
+		
+		double meas = stod(temp.substr(pos+1));
+		cout<<endl<<"New Measurement : " << meas<<" ============="<<endl;
+		measurement.raw_measurements_ = VectorXd(MEASUREMENT_SIZE);
+		measurement.raw_measurements_ << meas;
+		cameraData2.push_back(measurement.raw_measurements_);
+
+		VectorXd gt(MEASUREMENT_SIZE);
+		gt(0)=computeLastRadarMeasurement(radardata, measurement.timestamp_);
+		ground_truth2.push_back(gt);
+
+		fusionEKF2.ProcessMeasurement(measurement);  
+
+		VectorXd estimate(MEASUREMENT_SIZE);		
+		estimate(0) = fusionEKF2.ekf_.x_(0);		
+		estimations2.push_back(estimate);
+	} 
+	
+	VectorXd RMSE2 = tools.CalculateRMSE(estimations2, ground_truth2);  	 
+	cout<<"Test case 2 - RMSE:"<<RMSE2<<endl;
+	
+	plotData(cameraData2, estimations2, ground_truth2, RMSE2(0), 2);
+	
+	}
 }
 
 
