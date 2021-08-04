@@ -11,7 +11,8 @@ using namespace std;
 
 void plotData(const vector<VectorXd> &measurements,
 							const vector<VectorXd> &estimations,
-							const vector<VectorXd> &ground_truth)
+							const vector<VectorXd> &ground_truth,
+							float rmse)
 
 {
 	int n=measurements.size();
@@ -23,9 +24,11 @@ void plotData(const vector<VectorXd> &measurements,
 	for(VectorXd vec:estimations)  est.push_back(vec(0));
 	for(VectorXd vec:ground_truth) gt.push_back(vec(0));
 
-	plt::named_plot("Measurements", xAxis, meas);
+	plt::named_plot("cam_data1_noisy", xAxis, meas);
 	plt::named_plot("Estimations", xAxis, est);
-	plt::named_plot("GroundTruth", xAxis, gt);
+	plt::named_plot("cam_data1 (GroundTruth)", xAxis, gt);
+	string s = "RMSE:" + to_string(rmse);
+	plt::title(s);
   
 	plt::legend();
 	//plt::axis("equal");
@@ -83,9 +86,10 @@ int main()
 		estimations.push_back(estimate);
 	} 
 	
-	//VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);  	 
+	VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);  	 
+	cout<<"RMSE:"<<RMSE<<endl;
 	
-	plotData(noisy_measurements,estimations, ground_truth);
+	plotData(noisy_measurements,estimations, ground_truth, RMSE(0));
 	
 }
 
