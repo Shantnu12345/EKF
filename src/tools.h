@@ -7,6 +7,9 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using namespace std;
 
+
+const int MEASUREMENT_SIZE = 1;
+
 class Tools {
 public:
   /**

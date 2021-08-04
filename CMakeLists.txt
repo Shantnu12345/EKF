@@ -23,4 +23,4 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 add_executable(ExtendedKF ${sources})
 
-target_link_libraries(ExtendedKF)
+target_link_libraries(ExtendedKF python2.7)

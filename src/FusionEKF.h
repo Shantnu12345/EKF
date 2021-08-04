@@ -1,7 +1,7 @@
 #ifndef FusionEKF_H_
 #define FusionEKF_H_
 
-#include "measurement_package.h"
+#include "measurement.h"
 #include "Eigen/Dense"
 #include <vector>
 #include <string>
@@ -41,9 +41,7 @@ private:
   // tool object used to compute Jacobian and RMSE
   Tools tools;
   Eigen::MatrixXd R_laser_;
-  Eigen::MatrixXd R_radar_;
   Eigen::MatrixXd H_laser_;
-  Eigen::MatrixXd Hj_;
 };
 
 #endif /* FusionEKF_H_ */

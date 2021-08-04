@@ -1,13 +1,39 @@
 #include <iostream>
 #include <math.h>
+#include <fstream>
+#include <random>
 #include "FusionEKF.h"
 #include "tools.h"
-
+#include "matplotlibcpp.h"
+namespace plt = matplotlibcpp;
 using namespace std;
+
+
+void plotData(const vector<VectorXd> &measurements,
+							const vector<VectorXd> &estimations,
+							const vector<VectorXd> &ground_truth)
+
+{
+	int n=measurements.size();
+	vector<double> xAxis(n);
+	for(int i=0; i<n; i++) xAxis[i]=i;
+
+	vector<double> meas, est, gt;
+	for(VectorXd vec:measurements) meas.push_back(vec(0));
+	for(VectorXd vec:estimations)  est.push_back(vec(0));
+	for(VectorXd vec:ground_truth) gt.push_back(vec(0));
+
+	plt::named_plot("Measurements", xAxis, meas);
+	plt::named_plot("Estimations", xAxis, est);
+	plt::named_plot("GroundTruth", xAxis, gt);
+  
+	plt::legend();
+	//plt::axis("equal");
+	plt::show();
+}
 
 int main()
 {
-  uWS::Hub h;
 
   // Create a Kalman Filter instance
   FusionEKF fusionEKF;
@@ -16,161 +42,51 @@ int main()
   Tools tools;
   vector<VectorXd> estimations;
   vector<VectorXd> ground_truth;
+	vector<VectorXd> noisy_measurements;
+	std::default_random_engine generator;
+	std::normal_distribution<double> distribution(0.0,0.5);
 
-  h.onMessage([&fusionEKF,&tools,&estimations,&ground_truth](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
-    // "42" at the start of the message means there's a websocket message event.
-    // The 4 signifies a websocket message
-    // The 2 signifies a websocket event
+	ifstream infile;
+	infile.open("../data/cam_data1.txt");
+	string temp;
+	if (!infile.is_open())
+	{
+		throw runtime_error("File couldn't be opened");
+	}
 
-    if (length && length > 2 && data[0] == '4' && data[1] == '2')
-    {
+	while(getline(infile, temp))
+	{
+		MeasurementPackage measurement;
+		int pos = temp.find(",");
 
-      auto s = hasData(std::string(data));
-      if (s != "") {
-      	
-        auto j = json::parse(s);
+		measurement.timestamp_ = stol(temp.substr(0, pos));
+		
+		double meas = stod(temp.substr(pos+1));
+		cout<<endl<<"New Measurement : " << meas<<" ============="<<endl;
 
-        std::string event = j[0].get<std::string>();
-        
-        if (event == "telemetry") {
-          // j[1] is the data JSON object
-          
-          string sensor_measurment = j[1]["sensor_measurement"];
-          
-          MeasurementPackage meas_package;
-          istringstream iss(sensor_measurment);
-    	  long long timestamp;
+		VectorXd gt(MEASUREMENT_SIZE);
+		gt(0)=meas;
+		ground_truth.push_back(gt);
+		
+		double noise = distribution(generator);
+		VectorXd noisyMeasurement(MEASUREMENT_SIZE);
+		noisyMeasurement << meas+noise;
+		noisy_measurements.push_back(noisyMeasurement);
 
-    	  // reads first element from the current line
-    	  string sensor_type;
-    	  iss >> sensor_type;
-    	  
-//    	  cout<<"hello"<<endl;
-    	  
-    	  if (sensor_type.compare("L") == 0) {
-    		//  cout<<"entering lidar if"<<endl;
-    		  meas_package.sensor_type_ = MeasurementPackage::LASER;
-          		meas_package.raw_measurements_ = VectorXd(2);
-          		float px;
-      	  		float py;
-          		iss >> px;
-          		iss >> py;
-          		meas_package.raw_measurements_ << px, py;
-          		iss >> timestamp;
-          		meas_package.timestamp_ = timestamp;
-//          		cout<<"Exiting lidar if"<<endl;
-    	  } else if (sensor_type.compare("R") == 0) {
-//        	  	cout<<"entering radar if"<<endl;
-      	  		meas_package.sensor_type_ = MeasurementPackage::RADAR;
-          		meas_package.raw_measurements_ = VectorXd(3);
-          		float ro;
-      	  		float theta;
-      	  		float ro_dot;
-          		iss >> ro;
-          		iss >> theta;
-          		iss >> ro_dot;
-          		meas_package.raw_measurements_ << ro,theta, ro_dot;
-          		iss >> timestamp;
-          		meas_package.timestamp_ = timestamp;
-//          		cout<<"Exiting radar if"<<endl;
-          }
-          float x_gt;
-    	  float y_gt;
-    	  float vx_gt;
-    	  float vy_gt;
-    	  iss >> x_gt;
-    	  iss >> y_gt;
-    	  iss >> vx_gt;
-    	  iss >> vy_gt;
-    	  VectorXd gt_values(4);
-    	  gt_values(0) = x_gt;
-    	  gt_values(1) = y_gt; 
-    	  gt_values(2) = vx_gt;
-    	  gt_values(3) = vy_gt;
-    	  ground_truth.push_back(gt_values);
-          
-          //Call ProcessMeasurment(meas_package) for Kalman filter
-//    	  cout<<"calling process measuremnet"<<endl;
-    	  fusionEKF.ProcessMeasurement(meas_package);    	  
-//    	  cout<<"finished process measuremnet"<<endl;
-    	  //Push the current estimated x,y positon from the Klaman filter's state vector
+		cout<<"Noisy Measurement : " << meas+noise<<endl;
+		measurement.raw_measurements_ = noisyMeasurement;
 
-    	  VectorXd estimate(4);
+		fusionEKF.ProcessMeasurement(measurement);  
 
-    	  double p_x = fusionEKF.ekf_.x_(0);
-    	  double p_y = fusionEKF.ekf_.x_(1);
-    	  double v1  = fusionEKF.ekf_.x_(2);
-    	  double v2 = fusionEKF.ekf_.x_(3);
-
-    	  estimate(0) = p_x;
-    	  estimate(1) = p_y;
-    	  estimate(2) = v1;
-    	  estimate(3) = v2;
-    	  
-    	 
-    	  estimations.push_back(estimate);
-
-    	  VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);
-//    	  cout<<RMSE<<endl;
-    	 
-    	  
-//    	  cout<<"hello1"<<endl;
-          json msgJson;
-          msgJson["estimate_x"] = p_x;
-          msgJson["estimate_y"] = p_y;
-          msgJson["rmse_x"] =  RMSE(0);
-          msgJson["rmse_y"] =  RMSE(1);
-          msgJson["rmse_vx"] = RMSE(2);
-          msgJson["rmse_vy"] = RMSE(3);
-          auto msg = "42[\"estimate_marker\"," + msgJson.dump() + "]";
-//          std::cout << msg << std::endl;
-          ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-
-        }
-      } else {
-        
-        std::string msg = "42[\"manual\",{}]";
-        ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-      }
-    }
-
-  });
-
-  // We don't need this since we're not using HTTP but if it's removed the program
-  // doesn't compile :-(
-  h.onHttpRequest([](uWS::HttpResponse *res, uWS::HttpRequest req, char *data, size_t, size_t) {
-    const std::string s = "<h1>Hello world!</h1>";
-    if (req.getUrl().valueLength == 1)
-    {
-      res->end(s.data(), s.length());
-    }
-    else
-    {
-      // i guess this should be done more gracefully?
-      res->end(nullptr, 0);
-    }
-  });
-
-  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-    std::cout << "Connected!!!" << std::endl;
-  });
-
-  h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code, char *message, size_t length) {
-    ws.close();
-    std::cout << "Disconnected" << std::endl;
-  });
-
-  int port = 4567;
-  if (h.listen(port))
-  {
-    std::cout << "Listening to port " << port << std::endl;
-  }
-  else
-  {
-    std::cerr << "Failed to listen to port" << std::endl;
-    return -1;
-  }
-  h.run();
+		VectorXd estimate(MEASUREMENT_SIZE);		
+		estimate(0) = fusionEKF.ekf_.x_(0);		
+		estimations.push_back(estimate);
+	} 
+	
+	//VectorXd RMSE = tools.CalculateRMSE(estimations, ground_truth);  	 
+	
+	plotData(noisy_measurements,estimations, ground_truth);
+	
 }
 
 
