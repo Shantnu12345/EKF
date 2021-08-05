@@ -38,20 +38,6 @@ void plotData(const vector<VectorXd> &measurements,
 	//plt::axis("equal");
 	plt::show();
 }
-double computeLastRadarMeasurement(vector<MeasurementPackage> const& radardata, long long timestamp)
-{
-	double lastmeas=radardata[0].raw_measurements_(0);
-	for(auto const& measPack : radardata)
-	{
-		if(measPack.timestamp_ > timestamp) 
-			break;
-
-		lastmeas=measPack.raw_measurements_(0);
-	}
-
-	return lastmeas;
-}
-
 
 int main()
 {
@@ -161,7 +147,7 @@ int main()
 		cameraData2.push_back(measurement.raw_measurements_);
 
 		VectorXd gt(MEASUREMENT_SIZE);
-		gt(0)=computeLastRadarMeasurement(radardata, measurement.timestamp_);
+		gt(0)=tools.computeLastRadarMeasurement(radardata, measurement.timestamp_);
 		ground_truth2.push_back(gt);
 
 		fusionEKF2.ProcessMeasurement(measurement);  

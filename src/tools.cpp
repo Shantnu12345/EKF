@@ -73,3 +73,17 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
 
 	return Hj;
 }
+
+double Tools::computeLastRadarMeasurement(vector<MeasurementPackage> const& radardata, long long timestamp)
+{
+	double lastmeas=radardata[0].raw_measurements_(0);
+	for(auto const& measPack : radardata)
+	{
+		if(measPack.timestamp_ > timestamp) 
+			break;
+
+		lastmeas=measPack.raw_measurements_(0);
+	}
+
+	return lastmeas;
+}

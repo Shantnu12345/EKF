@@ -2,6 +2,7 @@
 #define TOOLS_H_
 #include <vector>
 #include "Eigen/Dense"
+#include "measurement.h"
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -31,6 +32,8 @@ public:
   * A helper method to calculate Jacobians.
   */
   MatrixXd CalculateJacobian(const VectorXd& x_state);
+
+  double computeLastRadarMeasurement(vector<MeasurementPackage> const& radardata, long long timestamp);
 
 };
 
