@@ -31,6 +31,9 @@ public:
   */
   KalmanFilter ekf_;
 
+  float sigma_sensor        = 0.5f; 
+  float sigma_acceleration  = 3.0f;
+
 private:
   // check whether the tracking toolbox was initiallized or not (first measurement)
   bool is_initialized_;

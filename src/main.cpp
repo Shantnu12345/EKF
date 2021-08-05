@@ -8,6 +8,7 @@
 namespace plt = matplotlibcpp;
 using namespace std;
 
+//Tune the two cases
 
 void plotData(const vector<VectorXd> &measurements,
 							const vector<VectorXd> &estimations,
@@ -59,11 +60,13 @@ int main()
 	{
 	cout<<"=============================================TEST CASE 1==============================================================="<<endl;
   FusionEKF fusionEKF;
+	fusionEKF.sigma_acceleration = 3.0f;
+	fusionEKF.sigma_sensor       = 0.5f;
   vector<VectorXd> estimations;
   vector<VectorXd> ground_truth;
 	vector<VectorXd> noisy_measurements;
 	std::default_random_engine generator;
-	std::normal_distribution<double> distribution(0.0,sigma_sensor);
+	std::normal_distribution<double> distribution(0.0,fusionEKF.sigma_sensor);
 
 	ifstream infile;
 	infile.open("../data/cam_data1.txt");
@@ -111,6 +114,8 @@ int main()
 	{
 	cout<<"=============================================TEST CASE 2==============================================================="<<endl;
 	FusionEKF fusionEKF2;
+	fusionEKF2.sigma_acceleration = 3.0f;
+	fusionEKF2.sigma_sensor       = 10.5f;
   vector<VectorXd> estimations2;
   vector<VectorXd> ground_truth2;
 	vector<MeasurementPackage> radardata;
