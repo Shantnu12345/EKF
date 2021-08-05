@@ -43,7 +43,7 @@ int main()
 {
 	Tools tools;
 
-	{
+	
 	cout<<"=============================================TEST CASE 1==============================================================="<<endl;
   FusionEKF fusionEKF;
 	fusionEKF.sigma_acceleration = 3.0f;
@@ -95,9 +95,9 @@ int main()
 	cout<<"Test case 1: RMSE:"<<RMSE<<endl;
 	
 	plotData(noisy_measurements,estimations, ground_truth, RMSE(0), 1);
-	}
 	
-	{
+	
+	
 	cout<<"=============================================TEST CASE 2==============================================================="<<endl;
 	FusionEKF fusionEKF2;
 	fusionEKF2.sigma_acceleration = 3.0f;
@@ -106,7 +106,6 @@ int main()
   vector<VectorXd> ground_truth2;
 	vector<MeasurementPackage> radardata;
 	vector<VectorXd> cameraData2;
-	string temp;
 	
 	ifstream gtfile;
 	gtfile.open("../data/rad_data2.txt");
@@ -162,7 +161,6 @@ int main()
 	
 	plotData(cameraData2, estimations2, ground_truth2, RMSE2(0), 2);
 	
-	}
 }
 
 
